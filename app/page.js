@@ -101,7 +101,7 @@ export default function Home() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="px-4 py-2 border border-white bg-black text-white rounded-lg focus:outline-none w-full md:w-auto"
+            className="px-4 py-2 border border-white bg-transparent text-white rounded-full focus:outline-none w-full md:w-auto"
           />
           
 
@@ -111,7 +111,7 @@ export default function Home() {
   
         {!isNameLocked && (
           <button
-            className="px-4 py-2 bg-white md:w-auto w-full text-black rounded-lg hover:bg-gray-300"
+            className="px-3 py-2 bg-white md:w-auto w-full text-black rounded-full hover:bg-gray-300"
             onClick={handleClick}
           >
             ➔
@@ -207,7 +207,7 @@ export default function Home() {
         </div>
         
       )}
-        <h6 className="text-sm md:text-sm font-bold mt-6 text-center">Made by Nearcult | V-2</h6>
+        <h6 className="text-sm md:text-sm font-bold mt-6 text-center">Made by Weowls | V-2</h6>
 
     </div>
   );
