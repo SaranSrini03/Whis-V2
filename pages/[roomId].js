@@ -217,7 +217,7 @@ export default function ChatRoom() {
 
         {/* Search Bar */}
         {showSearch && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-black/40 rounded-lg border border-white/20">
+          <div className="flex items-center gap-2 px-4 py-6 bg-black/40 rounded-full border border-white/20">
             <FaSearch className="text-white/60" />
             <input
               type="text"

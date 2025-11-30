@@ -5,7 +5,6 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { database, ref, set, remove } from "../lib/firebase";
 import { FaEdit, FaTrash, FaSmile, FaTimes } from "react-icons/fa";
-import EmojiPicker from 'emoji-picker-react';
 // Custom black/white theme for code highlighting
 
 export default function MessageList({ messages, userColors, userName, typingUsers, searchQuery }) {
@@ -17,7 +16,6 @@ export default function MessageList({ messages, userColors, userName, typingUser
   const [showReactionPicker, setShowReactionPicker] = useState(null);
   const [showReactions, setShowReactions] = useState({});
   const [contextMenu, setContextMenu] = useState(null);
-  const [reactionPickerPosition, setReactionPickerPosition] = useState(null);
   const longPressTimer = useRef(null);
 
   useEffect(() => {
@@ -27,16 +25,22 @@ export default function MessageList({ messages, userColors, userName, typingUser
   }, [messages, isAtBottom]);
 
   useEffect(() => {
-    const handleClickOutside = () => {
+    const handleClickOutside = (e) => {
+      // Don't close if clicking on the context menu or reaction picker
+      if (e.target.closest('.context-menu') || e.target.closest('.reaction-picker-container')) {
+        return;
+      }
       setContextMenu(null);
-      setShowReactionPicker(null);
+      // Only close reaction picker if not clicking on it
+      if (!e.target.closest('.reaction-picker-container')) {
+        setShowReactionPicker(null);
+      }
     };
 
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
         setContextMenu(null);
         setShowReactionPicker(null);
-        setReactionPickerPosition(null);
       }
     };
 
@@ -101,17 +105,31 @@ export default function MessageList({ messages, userColors, userName, typingUser
       const message = messages.find(m => m.id === messageId);
       const reactions = message.reactions || {};
       
-      if (reactions[emoji]) {
-        if (reactions[emoji].includes(userName)) {
-          reactions[emoji] = reactions[emoji].filter(u => u !== userName);
-          if (reactions[emoji].length === 0) {
-            delete reactions[emoji];
-          }
-        } else {
-          reactions[emoji] = [...reactions[emoji], userName];
+      // Find the emoji the user previously reacted with (if any)
+      let previousEmoji = null;
+      for (const [emojiKey, users] of Object.entries(reactions)) {
+        if (users.includes(userName)) {
+          previousEmoji = emojiKey;
+          break;
         }
-      } else {
-        reactions[emoji] = [userName];
+      }
+      
+      // Remove user from their previous reaction (if any)
+      if (previousEmoji) {
+        reactions[previousEmoji] = reactions[previousEmoji].filter(u => u !== userName);
+        if (reactions[previousEmoji].length === 0) {
+          delete reactions[previousEmoji];
+        }
+      }
+      
+      // If clicking the same emoji they already had, don't add it back (removes reaction)
+      // Otherwise, add the new reaction
+      if (previousEmoji !== emoji) {
+        if (reactions[emoji]) {
+          reactions[emoji] = [...reactions[emoji], userName];
+        } else {
+          reactions[emoji] = [userName];
+        }
       }
 
       const messageRef = ref(database, `rooms/${roomId}/messages/${messageId}`);
@@ -121,7 +139,6 @@ export default function MessageList({ messages, userColors, userName, typingUser
       });
       setShowReactionPicker(null);
       setContextMenu(null);
-      setReactionPickerPosition(null);
     } catch (error) {
       console.error("Error adding reaction:", error);
     }
@@ -195,10 +212,13 @@ export default function MessageList({ messages, userColors, userName, typingUser
     <div className="flex flex-col h-[400px] w-full">
       {/* Context Menu Bar - Horizontal */}
       {contextMenu && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-black/95 border-b border-white/30 rounded-t-xl backdrop-blur-lg">
+        <div 
+          className="context-menu flex items-center gap-2 px-4 py-2 bg-black/95 border-b border-white/30 rounded-t-xl backdrop-blur-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
-            onClick={() => {
-              setReactionPickerPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+            onClick={(e) => {
+              e.stopPropagation();
               setShowReactionPicker(contextMenu.messageId);
               setContextMenu(null);
             }}
@@ -210,7 +230,8 @@ export default function MessageList({ messages, userColors, userName, typingUser
           {messages.find(m => m.id === contextMenu.messageId)?.sender === userName && (
             <>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   const message = messages.find(m => m.id === contextMenu.messageId);
                   if (message) {
                     handleEdit(message);
@@ -223,7 +244,8 @@ export default function MessageList({ messages, userColors, userName, typingUser
                 Edit
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   const roomId = getRoomId();
                   if (roomId) {
                     handleDelete(contextMenu.messageId, roomId);
@@ -238,7 +260,10 @@ export default function MessageList({ messages, userColors, userName, typingUser
             </>
           )}
           <button
-            onClick={() => setContextMenu(null)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setContextMenu(null);
+            }}
             className="ml-auto px-3 py-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-all"
             aria-label="Close menu"
           >
@@ -267,7 +292,7 @@ export default function MessageList({ messages, userColors, userName, typingUser
           return (
             <div
               key={messageId}
-              className={`mb-4 group ${isOwnMessage ? "items-end" : "items-start"}`}
+              className={`message-container mb-4 group ${isOwnMessage ? "items-end" : "items-start"}`}
             >
               <div className={`flex flex-col ${isOwnMessage ? "ml-12" : "mr-12"}`}>
                 {/* Message Bubble */}
@@ -276,7 +301,7 @@ export default function MessageList({ messages, userColors, userName, typingUser
                   onTouchStart={(e) => handleTouchStart(e, messageId)}
                   onTouchEnd={handleTouchEnd}
                   onTouchMove={handleTouchMove}
-                  className={`
+                  className={`message-bubble
                     p-3 rounded-xl max-w-[80%] relative cursor-context-menu select-none
                     ${isOwnMessage 
                       ? "bg-white/10 border border-white/30 ml-auto shadow-[0_0_10px_rgba(255,255,255,0.1)]" 
@@ -433,48 +458,65 @@ export default function MessageList({ messages, userColors, userName, typingUser
 
       <div ref={messagesEndRef} />
 
-      {/* Reaction Picker */}
+      {/* Reaction Picker Full-Screen Modal */}
       {showReactionPicker && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => {
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md px-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
               setShowReactionPicker(null);
-              setReactionPickerPosition(null);
-            }}
-          />
-          <div
-            className="fixed z-50"
-            style={{
-              left: reactionPickerPosition ? `${reactionPickerPosition.x}px` : '50%',
-              top: reactionPickerPosition ? `${reactionPickerPosition.y}px` : '50%',
-              transform: reactionPickerPosition ? 'translate(-50%, -100%)' : 'translate(-50%, -50%)'
-            }}
+            }
+          }}
+        >
+          <div 
+            className="reaction-picker-container bg-black/95 backdrop-blur-lg border-2 border-white/30 rounded-2xl p-8 shadow-[0_0_40px_rgba(255,255,255,0.3)] max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative">
-              <EmojiPicker
-                onEmojiClick={(emojiData) => {
-                  const roomId = getRoomId();
-                  if (roomId) {
-                    handleReaction(showReactionPicker, roomId, emojiData.emoji);
-                  }
-                }}
-                theme="dark"
-                previewConfig={{ showPreview: false }}
-              />
-              <button
-                onClick={() => {
-                  setShowReactionPicker(null);
-                  setReactionPickerPosition(null);
-                }}
-                className="absolute top-0 right-0 p-1 bg-black/80 border border-white/20 rounded-full hover:bg-white/10"
-              >
-                <FaTimes className="text-xs text-white" />
-              </button>
+            <div className="flex flex-col items-center gap-6">
+              <div className="flex items-center justify-between w-full mb-2">
+                <h2 className="text-2xl font-bold text-white">Add Reaction</h2>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowReactionPicker(null);
+                  }}
+                  className="px-3 py-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/20"
+                  aria-label="Close"
+                >
+                  <FaTimes className="text-xl" />
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4 w-full">
+                {[
+                  { emoji: '😊', label: 'Smile' },
+                  { emoji: '😢', label: 'Cry' },
+                  { emoji: '😠', label: 'Angry' },
+                  { emoji: '😂', label: 'Laugh' },
+                  { emoji: '❤️', label: 'Heart' },
+                  { emoji: '👍', label: 'Thumbs Up' }
+                ].map(({ emoji, label }) => (
+                  <button
+                    key={emoji}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const roomId = getRoomId();
+                      if (roomId) {
+                        handleReaction(showReactionPicker, roomId, emoji);
+                      }
+                    }}
+                    className="flex flex-col items-center justify-center px-6 py-6 text-5xl hover:bg-white/20 rounded-xl transition-all transform hover:scale-110 active:scale-95 border-2 border-transparent hover:border-white/30 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)]"
+                    title={label}
+                    aria-label={label}
+                  >
+                    <span>{emoji}</span>
+                    <span className="text-xs text-white/60 mt-2">{label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </>
+        </div>
       )}
       </div>
     </div>
