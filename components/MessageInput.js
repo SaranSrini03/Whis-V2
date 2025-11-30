@@ -4,7 +4,7 @@ import { database, ref, push, remove, set } from "../lib/firebase";
 import { FaFile, FaMapMarkerAlt, FaMicrophone, FaImage, FaPoll, FaPlus, FaSmile } from "react-icons/fa";
 import EmojiPicker from 'emoji-picker-react';
 
-export default function MessageInput({ roomId, userName, replyTo, onReplyCancel, onMessageSent }) {
+export default function MessageInput({ roomId, userName }) {
     const [newMessage, setNewMessage] = useState("");
     const [showOptions, setShowOptions] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
@@ -31,24 +31,16 @@ export default function MessageInput({ roomId, userName, replyTo, onReplyCancel,
                 timestamp: Date.now(),
                 edited: false,
                 reactions: {},
-                replyTo: replyTo ? {
-                    id: replyTo.id,
-                    sender: replyTo.sender,
-                    text: replyTo.text,
-                    timestamp: replyTo.timestamp
-                } : null,
             };
 
             const messagesRef = ref(database, `rooms/${roomId}/messages`);
             await push(messagesRef, message);
             setNewMessage("");
             setShowEmojiPicker(false);
-            if (onReplyCancel) onReplyCancel();
-            if (onMessageSent) onMessageSent();
         } catch (error) {
             console.error("Error sending message:", error);
         }
-    }, [newMessage, roomId, userName, replyTo, onReplyCancel, onMessageSent]);
+    }, [newMessage, roomId, userName]);
 
     const handleKeyDown = useCallback((e) => {
         if (!roomId || !userName) return;
@@ -81,24 +73,7 @@ export default function MessageInput({ roomId, userName, replyTo, onReplyCancel,
 
 
     return (
-        <div className="relative flex flex-col w-full max-w-2xl gap-2 p-2">
-            {replyTo && (
-                <div className="flex items-center justify-between px-3 py-2 bg-black/40 rounded-lg border border-white/30">
-                    <div className="flex-1">
-                        <p className="text-xs text-white">Replying to {replyTo.sender}</p>
-                        <p className="text-xs text-white/60 truncate">{replyTo.text}</p>
-                    </div>
-                    <button
-                        onClick={onReplyCancel}
-                        className="ml-2 text-white/60 hover:text-white"
-                        aria-label="Cancel reply"
-                    >
-                        ×
-                    </button>
-                </div>
-            )}
-
-            <div className="relative flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div className="relative flex items-center gap-2 flex-wrap sm:flex-nowrap w-full max-w-2xl p-2">
                 {showOptions && (
                     <div className="absolute bottom-full left-0 mb-2 bg-black/95 backdrop-blur-lg text-white p-3 rounded-xl shadow-2xl border border-white/20 flex gap-3 flex-wrap sm:flex-nowrap z-50">
                         {[
@@ -180,7 +155,6 @@ export default function MessageInput({ roomId, userName, replyTo, onReplyCancel,
                         />
                     </svg>
                 </button>
-            </div>
         </div>
     );
 }

@@ -4,11 +4,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { database, ref, set, remove } from "../lib/firebase";
-import { FaEdit, FaTrash, FaReply, FaSmile, FaTimes } from "react-icons/fa";
+import { FaEdit, FaTrash, FaSmile, FaTimes } from "react-icons/fa";
 import EmojiPicker from 'emoji-picker-react';
 // Custom black/white theme for code highlighting
 
-export default function MessageList({ messages, userColors, userName, typingUsers, onReply, searchQuery }) {
+export default function MessageList({ messages, userColors, userName, typingUsers, searchQuery }) {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -184,64 +184,12 @@ export default function MessageList({ messages, userColors, userName, typingUser
     return null;
   };
 
-  const organizeMessagesWithReplies = (messages) => {
-    if (!messages || messages.length === 0) return [];
-
-    // Sort by timestamp first
-    const sorted = [...messages].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-    const organized = [];
-    const processed = new Set();
-
-    sorted.forEach(msg => {
-      if (processed.has(msg.id)) return;
-
-      if (msg.replyTo && msg.replyTo.id) {
-        // This is a reply - find the parent message
-        const parentId = msg.replyTo.id;
-        const parentIndex = sorted.findIndex(m => m.id === parentId);
-        
-        if (parentIndex !== -1 && !processed.has(parentId)) {
-          // Add reply first, then parent
-          organized.push(msg);
-          organized.push(sorted[parentIndex]);
-          processed.add(msg.id);
-          processed.add(parentId);
-        } else {
-          // Parent not found or already processed, add normally
-          organized.push(msg);
-          processed.add(msg.id);
-        }
-      } else {
-        // Check if this message has replies that haven't been processed
-        const unprocessedReplies = sorted.filter(m => 
-          m.replyTo && m.replyTo.id === msg.id && !processed.has(m.id)
-        );
-        
-        if (unprocessedReplies.length > 0) {
-          // Add replies first, then this message
-          unprocessedReplies.forEach(reply => {
-            organized.push(reply);
-            processed.add(reply.id);
-          });
-        }
-        
-        // Add this message
-        organized.push(msg);
-        processed.add(msg.id);
-      }
-    });
-
-    return organized;
-  };
-
   const filteredMessages = searchQuery
     ? messages.filter(msg => 
         (msg.text && msg.text.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (msg.sender && msg.sender.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : messages;
-
-  const organizedMessages = organizeMessagesWithReplies(filteredMessages);
 
   return (
     <div className="flex flex-col h-[400px] w-full">
@@ -259,21 +207,6 @@ export default function MessageList({ messages, userColors, userName, typingUser
             <FaSmile className="text-white/60" />
             Reaction
           </button>
-          {onReply && (
-            <button
-              onClick={() => {
-                const message = messages.find(m => m.id === contextMenu.messageId);
-                if (message) {
-                  onReply(message);
-                }
-                setContextMenu(null);
-              }}
-              className="px-3 py-1.5 text-white hover:bg-white/10 rounded flex items-center gap-2 text-sm border border-white/20 transition-all"
-            >
-              <FaReply className="text-white/60" />
-              Reply
-            </button>
-          )}
           {messages.find(m => m.id === contextMenu.messageId)?.sender === userName && (
             <>
               <button
@@ -323,8 +256,8 @@ export default function MessageList({ messages, userColors, userName, typingUser
           backgroundSize: '40px 40px'
         }}
       >
-      {organizedMessages.length > 0 ? (
-        organizedMessages.map((message, index) => {
+      {filteredMessages.length > 0 ? (
+        filteredMessages.map((message, index) => {
           const isOwnMessage = message.sender === userName;
           const userColor = userColors[message.sender];
           const isEditing = editingMessageId === message.id;
@@ -337,13 +270,6 @@ export default function MessageList({ messages, userColors, userName, typingUser
               className={`mb-4 group ${isOwnMessage ? "items-end" : "items-start"}`}
             >
               <div className={`flex flex-col ${isOwnMessage ? "ml-12" : "mr-12"}`}>
-                {/* Reply Preview */}
-                {message.replyTo && (
-                  <div className="mb-1 ml-2 pl-3 border-l-2 border-white/30 text-xs text-white/60">
-                    <span className="text-white">{message.replyTo.sender}:</span> <span className="text-white/50">{message.replyTo.text}</span>
-                  </div>
-                )}
-
                 {/* Message Bubble */}
                 <div
                   onContextMenu={(e) => handleContextMenu(e, messageId)}

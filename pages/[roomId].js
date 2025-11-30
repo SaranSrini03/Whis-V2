@@ -18,7 +18,6 @@ export default function ChatRoom() {
   const messagesContainerRef = useRef(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
-  const [replyTo, setReplyTo] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
@@ -141,17 +140,6 @@ export default function ChatRoom() {
 
   const handleBackToHome = () => router.push("/");
 
-  const handleReply = (message) => {
-    setReplyTo(message);
-  };
-
-  const handleReplyCancel = () => {
-    setReplyTo(null);
-  };
-
-  const handleMessageSent = () => {
-    setReplyTo(null);
-  };
 
   const generateRandomColor = () => {
     let color;
@@ -251,21 +239,17 @@ export default function ChatRoom() {
         )}
 
         <div className="bg-black/30 rounded-xl border border-white/20 shadow-2xl max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
-          <MessageList 
-            messages={messages} 
-            userColors={userColors} 
-            userName={userName} 
-            typingUsers={typingUsers}
-            onReply={handleReply}
-            searchQuery={searchQuery}
-          />
+            <MessageList 
+              messages={messages} 
+              userColors={userColors} 
+              userName={userName} 
+              typingUsers={typingUsers}
+              searchQuery={searchQuery}
+            />
           <div className="p-3 border-t border-white/20">
             <MessageInput 
               roomId={roomId} 
               userName={userName}
-              replyTo={replyTo}
-              onReplyCancel={handleReplyCancel}
-              onMessageSent={handleMessageSent}
             />
           </div>
         </div>
