@@ -225,7 +225,8 @@ export default function MessageList({ messages, userColors, userName, typingUser
       {/* Context Menu Bar - Horizontal */}
       {contextMenu && (
         <div 
-          className="context-menu flex items-center gap-2 px-4 py-2 bg-black/95 border-b border-white/30 rounded-t-xl backdrop-blur-lg"
+          className="context-menu flex items-center gap-2 px-4 py-2 bg-black/95 border-b border-white/30 rounded-t-xl backdrop-blur-lg overflow-x-auto overflow-y-hidden scrollbar-hide"
+          style={{ WebkitOverflowScrolling: 'touch' }}
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -234,7 +235,7 @@ export default function MessageList({ messages, userColors, userName, typingUser
               setShowReactionPicker(contextMenu.messageId);
               setContextMenu(null);
             }}
-            className="px-3 py-1.5 text-white hover:bg-white/10 rounded flex items-center gap-2 text-sm border border-white/20 transition-all"
+            className="px-3 py-1.5 text-white hover:bg-white/10 rounded flex items-center gap-2 text-sm border border-white/20 transition-all flex-shrink-0 touch-manipulation"
           >
             <FaSmile className="text-white/60" />
             Reaction
@@ -249,7 +250,7 @@ export default function MessageList({ messages, userColors, userName, typingUser
               }
               setContextMenu(null);
             }}
-            className="px-3 py-1.5 text-white hover:bg-white/10 rounded flex items-center gap-2 text-sm border border-white/20 transition-all"
+            className="px-3 py-1.5 text-white hover:bg-white/10 rounded flex items-center gap-2 text-sm border border-white/20 transition-all flex-shrink-0 touch-manipulation"
           >
             <FaCopy className="text-white/60" />
             {copiedMessageId === contextMenu.messageId ? "Copied!" : "Copy"}
@@ -265,7 +266,7 @@ export default function MessageList({ messages, userColors, userName, typingUser
                   }
                   setContextMenu(null);
                 }}
-                className="px-3 py-1.5 text-white hover:bg-white/10 rounded flex items-center gap-2 text-sm border border-white/20 transition-all"
+                className="px-3 py-1.5 text-white hover:bg-white/10 rounded flex items-center gap-2 text-sm border border-white/20 transition-all flex-shrink-0 touch-manipulation"
               >
                 <FaEdit className="text-white/60" />
                 Edit
@@ -279,7 +280,7 @@ export default function MessageList({ messages, userColors, userName, typingUser
                   }
                   setContextMenu(null);
                 }}
-                className="px-3 py-1.5 text-white hover:bg-white/10 rounded flex items-center gap-2 text-sm border border-white/20 transition-all"
+                className="px-3 py-1.5 text-white hover:bg-white/10 rounded flex items-center gap-2 text-sm border border-white/20 transition-all flex-shrink-0 touch-manipulation"
               >
                 <FaTrash className="text-white/60" />
                 Delete
@@ -291,7 +292,7 @@ export default function MessageList({ messages, userColors, userName, typingUser
               e.stopPropagation();
               setContextMenu(null);
             }}
-            className="ml-auto px-3 py-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-all"
+            className="ml-auto px-3 py-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-all flex-shrink-0 touch-manipulation"
             aria-label="Close menu"
           >
             <FaTimes />
