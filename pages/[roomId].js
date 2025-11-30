@@ -4,6 +4,7 @@ import { database, ref, push, onValue, set, remove, onDisconnect } from "../lib/
 import "tailwindcss/tailwind.css";
 import MessageInput from "../components/MessageInput";
 import MessageList from "../components/MessageList";
+import { FaSearch, FaTimes } from "react-icons/fa";
 
 export default function ChatRoom() {
   const router = useRouter();
@@ -17,6 +18,9 @@ export default function ChatRoom() {
   const messagesContainerRef = useRef(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
 
   // Initialize roomId and userName
   useEffect(() => {
@@ -56,7 +60,19 @@ export default function ChatRoom() {
     const messagesRef = ref(database, `rooms/${roomId}/messages`);
     const unsubscribe = onValue(messagesRef, (snapshot) => {
       const data = snapshot.val();
-      const messageList = data ? Object.values(data) : [];
+      if (!data) {
+        setMessages([]);
+        return;
+      }
+      
+      // Convert Firebase data to array with IDs
+      const messageList = Object.entries(data).map(([id, message]) => ({
+        id,
+        ...message,
+      }));
+      
+      // Sort by timestamp
+      messageList.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
       setMessages(messageList);
 
       // Assign colors to users
@@ -125,6 +141,18 @@ export default function ChatRoom() {
 
   const handleBackToHome = () => router.push("/");
 
+  const handleReply = (message) => {
+    setReplyTo(message);
+  };
+
+  const handleReplyCancel = () => {
+    setReplyTo(null);
+  };
+
+  const handleMessageSent = () => {
+    setReplyTo(null);
+  };
+
   const generateRandomColor = () => {
     let color;
     do {
@@ -134,65 +162,117 @@ export default function ChatRoom() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 to-black text-white font-mono px-3 py-6 sm:px-6 md:px-8">
+    <div 
+      className="flex items-center justify-center min-h-screen bg-black text-white font-mono px-3 py-6 sm:px-6 md:px-8"
+      style={{
+        backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)',
+        backgroundSize: '50px 50px'
+      }}
+    >
       <div className="w-full max-w-xl space-y-6">
         <div className="text-center animate-fade-in">
           <h1
-            className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent cursor-pointer hover:brightness-125 transition-all"
+            className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 text-white cursor-pointer hover:text-white/80 transition-all"
             onClick={copyRoomLink}
           >
             {roomId ? `#${roomId}` : "Loading Room..."}
           </h1>
-          {isCopied && <span className="text-sm text-green-400 block animate-fade-in">Link copied!</span>}
-          <p className="text-sm sm:text-lg text-gray-300">
-            Welcome, <span className="font-semibold text-purple-300">{userName || "Guest"}</span>
+          {isCopied && <span className="text-sm text-white/70 block animate-fade-in">Link copied!</span>}
+          <p className="text-sm sm:text-lg text-white/60">
+            Welcome, <span className="font-semibold text-white">{userName || "Guest"}</span>
           </p>
         </div>
 
-        <div className="relative flex justify-center group">
-          {/* Button showing number of active users */}
-          <div className="flex items-center space-x-2 px-4 py-2 bg-gray-800/50 backdrop-blur-sm rounded-full border border-gray-600 hover:border-purple-400 transition-all cursor-pointer">
-            <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
-            <span className="text-sm font-medium">
-              {onlineUsers.length} Active {onlineUsers.length === 1 ? "User" : "Users"}
-            </span>
-          </div>
+        <div className="flex items-center justify-center gap-3">
+          <div className="relative flex justify-center group">
+            {/* Button showing number of active users */}
+            <div className="flex items-center space-x-2 px-4 py-2 bg-black/40 backdrop-blur-sm rounded-full border border-white/20 hover:border-white/40 transition-all cursor-pointer">
+              <div className="h-2 w-2 bg-white rounded-full animate-pulse shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+              <span className="text-sm font-medium text-white">
+                {onlineUsers.length} Active {onlineUsers.length === 1 ? "User" : "Users"}
+              </span>
+            </div>
 
           {/* Active users list (only shows on hover) */}
           {onlineUsers.length > 0 && (
             <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-50 pointer-events-none group-hover:pointer-events-auto">
-              <div className="bg-gray-900/95 backdrop-blur-lg text-sm rounded-xl p-4 shadow-2xl border border-gray-600">
+              <div className="bg-black/95 backdrop-blur-lg text-sm rounded-xl p-4 shadow-2xl border border-white/20">
                 <div className="flex items-center mb-2 space-x-2">
-                  <div className="h-2 w-2 bg-green-400 rounded-full" />
-                  <h3 className="font-semibold">Currently Online</h3>
+                  <div className="h-2 w-2 bg-white rounded-full shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                  <h3 className="font-semibold text-white">Currently Online</h3>
                 </div>
                 <ul className="grid gap-2 max-h-40 overflow-y-auto">
                   {onlineUsers.map((user, index) => (
                     <li
                       key={index}
-                      className="flex items-center space-x-2 px-2 py-1 rounded-md hover:bg-gray-800/50"
+                      className="flex items-center space-x-2 px-2 py-1 rounded-md hover:bg-white/10"
                     >
-                      <span className="h-2 w-2 bg-purple-400 rounded-full" />
-                      <span className="text-gray-200">{user}</span>
+                      <span className="h-2 w-2 bg-white rounded-full" />
+                      <span className="text-white/80">{user}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             </div>
           )}
+          </div>
+
+          {/* Search Button */}
+          <button
+            onClick={() => setShowSearch(!showSearch)}
+            className="px-4 py-2 bg-black/40 backdrop-blur-sm rounded-full border border-white/20 hover:border-white/40 transition-all"
+            aria-label="Search messages"
+          >
+            <FaSearch className="text-sm text-white" />
+          </button>
         </div>
 
+        {/* Search Bar */}
+        {showSearch && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-black/40 rounded-lg border border-white/20">
+            <FaSearch className="text-white/60" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search messages..."
+              className="flex-1 bg-transparent text-white placeholder-white/40 focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-white/60 hover:text-white"
+                aria-label="Clear search"
+              >
+                <FaTimes />
+              </button>
+            )}
+          </div>
+        )}
 
-        <div className="bg-gray-900/50 rounded-xl border border-gray-600 shadow-2xl max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
-          <MessageList messages={messages} userColors={userColors} userName={userName} typingUsers={typingUsers} />
-          <div className="p-3 border-t border-gray-600">
-            <MessageInput roomId={roomId} userName={userName} />
+        <div className="bg-black/30 rounded-xl border border-white/20 shadow-2xl max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
+          <MessageList 
+            messages={messages} 
+            userColors={userColors} 
+            userName={userName} 
+            typingUsers={typingUsers}
+            onReply={handleReply}
+            searchQuery={searchQuery}
+          />
+          <div className="p-3 border-t border-white/20">
+            <MessageInput 
+              roomId={roomId} 
+              userName={userName}
+              replyTo={replyTo}
+              onReplyCancel={handleReplyCancel}
+              onMessageSent={handleMessageSent}
+            />
           </div>
         </div>
 
         <button
           onClick={() => router.push("/")}
-          className="w-full max-w-lg mx-auto px-4 py-2 text-xs sm:text-sm font-medium text-gray-300 hover:bg-gray-800/50 rounded-lg border border-gray-600 flex justify-center items-center"
+          className="w-full max-w-lg mx-auto px-4 py-2 text-xs sm:text-sm font-medium text-white/70 hover:bg-white/10 rounded-lg border border-white/20 hover:border-white/40 flex justify-center items-center transition-all"
         >
           Return to Lobby
         </button>

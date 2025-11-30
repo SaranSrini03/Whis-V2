@@ -90,8 +90,14 @@ export default function Home() {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-900 to-black text-white flex-col font-mono px-4">
-      <h1 className="text-3xl md:text-4xl font-bold mb-6 text-center">Welcome to Whis.</h1>
+    <div 
+      className="flex items-center justify-center h-screen bg-black text-white flex-col font-mono px-4"
+      style={{
+        backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)',
+        backgroundSize: '50px 50px'
+      }}
+    >
+      <h1 className="text-3xl md:text-4xl font-bold mb-6 text-center text-white">Welcome to Whis.</h1>
   
       <div className="flex flex-col md:flex-row items-center md:space-x-4 space-y-4 md:space-y-0">
         {!isNameLocked ? (
@@ -101,7 +107,7 @@ export default function Home() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="px-4 py-2 border border-white bg-black text-white rounded-lg focus:outline-none w-full md:w-auto"
+            className="px-4 py-2 border border-white/30 bg-black/40 text-white rounded-lg focus:outline-none focus:border-white/50 w-full md:w-auto"
           />
           
 
@@ -111,7 +117,7 @@ export default function Home() {
   
         {!isNameLocked && (
           <button
-            className="px-4 py-2 bg-white md:w-auto w-full text-black rounded-lg hover:bg-gray-300"
+            className="px-4 py-2 bg-white md:w-auto w-full text-black rounded-lg hover:bg-white/90 font-semibold shadow-[0_0_10px_rgba(255,255,255,0.3)]"
             onClick={handleClick}
           >
             ➔
@@ -119,18 +125,18 @@ export default function Home() {
         )}
       </div>
   
-      {errorMessage && <p className="text-red-500 mt-4 text-center">{errorMessage}</p>}
+      {errorMessage && <p className="text-white/80 mt-4 text-center">{errorMessage}</p>}
   
       {showOptions && (
         <div className="mt-6 flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
           <button
-            className="px-6 py-3 bg-black text-white border border-white rounded-2xl hover:bg-gray-300 hover:text-black w-full md:w-auto"
+            className="px-6 py-3 bg-black/40 text-white border border-white/30 rounded-2xl hover:bg-white/10 hover:border-white/50 w-full md:w-auto transition-all"
             onClick={handleJoinRoom}
           >
             Join Room
           </button>
           <button
-            className="px-6 py-3 bg-black text-white border border-white rounded-2xl hover:bg-gray-300 hover:text-black w-full md:w-auto"
+            className="px-6 py-3 bg-white text-black border border-white rounded-2xl hover:bg-white/90 w-full md:w-auto font-semibold shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all"
             onClick={handleCreateRoom}
           >
             Create Room
@@ -139,25 +145,25 @@ export default function Home() {
       )}
   
       {isJoinRoomModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 px-4">
-          <div className="bg-white text-black p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">Enter Room ID</h2>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div className="bg-black border border-white/30 text-white p-6 rounded-lg w-full max-w-md shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+            <h2 className="text-2xl font-bold mb-4 text-white">Enter Room ID</h2>
             <input
               type="text"
               value={roomId}
               onChange={(e) => setRoomId(e.target.value)}
-              className="w-full px-4 py-2 border border-black rounded-lg mb-4"
+              className="w-full px-4 py-2 border border-white/30 bg-black/40 text-white rounded-lg mb-4 focus:outline-none focus:border-white/50"
               placeholder="Room ID"
             />
             <div className="flex space-x-4">
               <button
-                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-300"
+                className="px-6 py-2 bg-white text-black rounded-lg hover:bg-white/90 font-semibold shadow-[0_0_10px_rgba(255,255,255,0.3)]"
                 onClick={handleRoomIdSubmit}
               >
                 Join
               </button>
               <button
-                className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-400"
+                className="px-6 py-2 bg-black border border-white/30 text-white rounded-lg hover:bg-white/10"
                 onClick={() => setIsJoinRoomModalOpen(false)}
               >
                 Cancel
@@ -166,21 +172,20 @@ export default function Home() {
           </div>
         </div>
       )}
-  
+
       {isCreateRoomModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-black bg-opacity-50 px-4">
-          <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-md" />
-          <div className="bg-white text-black p-6 rounded-lg w-full max-w-md relative z-10">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div className="bg-black border border-white/30 text-white p-6 rounded-lg w-full max-w-md relative z-10 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
             <button
-              className="text-3xl text-black absolute top-2 right-2"
+              className="text-3xl text-white/70 hover:text-white absolute top-2 right-2"
               onClick={() => setIsCreateRoomModalOpen(false)}
             >
               ×
             </button>
-            <h2 className="text-2xl font-bold mb-4">Create Room</h2>
+            <h2 className="text-2xl font-bold mb-4 text-white">Create Room</h2>
             <div className="flex flex-col space-y-4">
               <button
-                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-300"
+                className="px-6 py-2 bg-white text-black rounded-lg hover:bg-white/90 font-semibold shadow-[0_0_10px_rgba(255,255,255,0.3)]"
                 onClick={handleCreateRoomWithRandomId}
               >
                 Create Random Room ID
@@ -190,12 +195,12 @@ export default function Home() {
                   type="text"
                   value={roomId}
                   onChange={(e) => setRoomId(e.target.value)}
-                  className="w-full md:w-64 px-4 py-2 border border-black rounded-lg"
+                  className="w-full md:w-64 px-4 py-2 border border-white/30 bg-black/40 text-white rounded-lg focus:outline-none focus:border-white/50"
                   placeholder="Enter your own room ID"
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateRoomWithEnteredId()}
                 />
                 <button
-                  className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-300 border border-black w-full md:w-auto"
+                  className="px-4 py-2 bg-white text-black rounded-lg hover:bg-white/90 border border-white w-full md:w-auto font-semibold shadow-[0_0_10px_rgba(255,255,255,0.3)]"
                   onClick={handleCreateRoomWithEnteredId}
                 >
                   ➔
@@ -203,11 +208,9 @@ export default function Home() {
               </div>
             </div>
           </div>
-
         </div>
-        
       )}
-        <h6 className="text-sm md:text-sm font-bold mt-6 text-center">Made by Nearcult | V-2</h6>
+        <h6 className="text-sm md:text-sm font-bold mt-6 text-center text-white/50">Made by Nearcult | V-2</h6>
 
     </div>
   );
