@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { database, ref, set, remove } from "../lib/firebase";
-import { FaEdit, FaTrash, FaSmile, FaTimes } from "react-icons/fa";
+import { FaEdit, FaTrash, FaSmile, FaTimes, FaCopy } from "react-icons/fa";
 // Custom black/white theme for code highlighting
 
 export default function MessageList({ messages, userColors, userName, typingUsers, searchQuery }) {
@@ -16,6 +16,7 @@ export default function MessageList({ messages, userColors, userName, typingUser
   const [showReactionPicker, setShowReactionPicker] = useState(null);
   const [showReactions, setShowReactions] = useState({});
   const [contextMenu, setContextMenu] = useState(null);
+  const [copiedMessageId, setCopiedMessageId] = useState(null);
   const longPressTimer = useRef(null);
 
   useEffect(() => {
@@ -98,6 +99,17 @@ export default function MessageList({ messages, userColors, userName, typingUser
     } catch (error) {
       console.error("Error deleting message:", error);
     }
+  };
+
+  const handleCopy = (messageId, messageText) => {
+    navigator.clipboard.writeText(messageText).then(() => {
+      setCopiedMessageId(messageId);
+      setTimeout(() => {
+        setCopiedMessageId(null);
+      }, 2000);
+    }).catch((error) => {
+      console.error("Error copying message:", error);
+    });
   };
 
   const handleReaction = async (messageId, roomId, emoji) => {
@@ -226,6 +238,20 @@ export default function MessageList({ messages, userColors, userName, typingUser
           >
             <FaSmile className="text-white/60" />
             Reaction
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const message = messages.find(m => m.id === contextMenu.messageId);
+              if (message) {
+                handleCopy(contextMenu.messageId, message.text);
+              }
+              setContextMenu(null);
+            }}
+            className="px-3 py-1.5 text-white hover:bg-white/10 rounded flex items-center gap-2 text-sm border border-white/20 transition-all"
+          >
+            <FaCopy className="text-white/60" />
+            {copiedMessageId === contextMenu.messageId ? "Copied!" : "Copy"}
           </button>
           {messages.find(m => m.id === contextMenu.messageId)?.sender === userName && (
             <>
@@ -416,6 +442,9 @@ export default function MessageList({ messages, userColors, userName, typingUser
                     {formatTimestamp(message.timestamp)}
                     {message.edited && (
                       <span className="text-white/40 italic">(edited)</span>
+                    )}
+                    {copiedMessageId === messageId && (
+                      <span className="text-green-400 font-semibold animate-pulse">✓ Copied!</span>
                     )}
                   </div>
                 </div>

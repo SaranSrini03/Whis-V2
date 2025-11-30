@@ -20,6 +20,7 @@ export default function ChatRoom() {
   const [isCopied, setIsCopied] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [showActiveUsersPopup, setShowActiveUsersPopup] = useState(false);
 
   // Initialize roomId and userName
   useEffect(() => {
@@ -108,6 +109,17 @@ export default function ChatRoom() {
     }
   }, [messages, isAtBottom]);
 
+  // Handle Escape key to close popup
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && showActiveUsersPopup) {
+        setShowActiveUsersPopup(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [showActiveUsersPopup]);
+
   const handleSendMessage = () => {
     if (newMessage.trim()) {
       push(ref(database, `rooms/${roomId}/messages`), {
@@ -172,38 +184,16 @@ export default function ChatRoom() {
         </div>
 
         <div className="flex items-center justify-center gap-3">
-          <div className="relative flex justify-center group">
-            {/* Button showing number of active users */}
-            <div className="flex items-center space-x-2 px-4 py-2 bg-black/40 backdrop-blur-sm rounded-full border border-white/20 hover:border-white/40 transition-all cursor-pointer">
-              <div className="h-2 w-2 bg-white rounded-full animate-pulse shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
-              <span className="text-sm font-medium text-white">
-                {onlineUsers.length} Active {onlineUsers.length === 1 ? "User" : "Users"}
-              </span>
-            </div>
-
-          {/* Active users list (only shows on hover) */}
-          {onlineUsers.length > 0 && (
-            <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-50 pointer-events-none group-hover:pointer-events-auto">
-              <div className="bg-black/95 backdrop-blur-lg text-sm rounded-xl p-4 shadow-2xl border border-white/20">
-                <div className="flex items-center mb-2 space-x-2">
-                  <div className="h-2 w-2 bg-white rounded-full shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
-                  <h3 className="font-semibold text-white">Currently Online</h3>
-                </div>
-                <ul className="grid gap-2 max-h-40 overflow-y-auto">
-                  {onlineUsers.map((user, index) => (
-                    <li
-                      key={index}
-                      className="flex items-center space-x-2 px-2 py-1 rounded-md hover:bg-white/10"
-                    >
-                      <span className="h-2 w-2 bg-white rounded-full" />
-                      <span className="text-white/80">{user}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-          </div>
+          {/* Button showing number of active users */}
+          <button
+            onClick={() => setShowActiveUsersPopup(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-black/40 backdrop-blur-sm rounded-full border border-white/20 hover:border-white/40 transition-all cursor-pointer"
+          >
+            <div className="h-2 w-2 bg-white rounded-full animate-pulse shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+            <span className="text-sm font-medium text-white">
+              {onlineUsers.length} Active {onlineUsers.length === 1 ? "User" : "Users"}
+            </span>
+          </button>
 
           {/* Search Button */}
           <button
@@ -235,6 +225,68 @@ export default function ChatRoom() {
                 <FaTimes />
               </button>
             )}
+          </div>
+        )}
+
+        {/* Active Users Popup Modal */}
+        {showActiveUsersPopup && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md px-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowActiveUsersPopup(false);
+              }
+            }}
+          >
+            <div 
+              className="bg-black/95 backdrop-blur-lg border-2 border-white/30 rounded-2xl p-6 shadow-[0_0_40px_rgba(255,255,255,0.3)] max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <div className="h-2 w-2 bg-white rounded-full animate-pulse shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                  <h2 className="text-2xl font-bold text-white">Active Users</h2>
+                </div>
+                <button
+                  onClick={() => setShowActiveUsersPopup(false)}
+                  className="px-3 py-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/20"
+                  aria-label="Close"
+                >
+                  <FaTimes className="text-xl" />
+                </button>
+              </div>
+              
+              {onlineUsers.length > 0 ? (
+                <div className="overflow-y-auto flex-1">
+                  <ul className="space-y-2">
+                    {onlineUsers.map((user, index) => (
+                      <li
+                        key={index}
+                        className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-all border border-transparent hover:border-white/20"
+                      >
+                        <div className="h-2 w-2 bg-white rounded-full shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                        <span className="text-white font-medium">{user}</span>
+                        {user === userName && (
+                          <span className="ml-auto text-xs text-white/60 px-2 py-1 bg-white/10 rounded-full border border-white/20">
+                            You
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8">
+                  <p className="text-white/60">No active users</p>
+                </div>
+              )}
+              
+              <div className="mt-4 pt-4 border-t border-white/20 text-center">
+                <p className="text-sm text-white/60">
+                  {onlineUsers.length} {onlineUsers.length === 1 ? "user" : "users"} online
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
