@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { database, ref, set, remove } from "../lib/firebase";
-import { FaEdit, FaTrash, FaSmile, FaTimes, FaCopy } from "react-icons/fa";
+import { FaEdit, FaTrash, FaSmile, FaTimes, FaCopy, FaDownload, FaFile, FaImage } from "react-icons/fa";
 // Custom black/white theme for code highlighting
 
 export default function MessageList({ messages, userColors, userName, typingUsers, searchQuery }) {
@@ -244,7 +244,8 @@ export default function MessageList({ messages, userColors, userName, typingUser
               e.stopPropagation();
               const message = messages.find(m => m.id === contextMenu.messageId);
               if (message) {
-                handleCopy(contextMenu.messageId, message.text);
+                const textToCopy = message.fileUrl || message.text;
+                handleCopy(contextMenu.messageId, textToCopy);
               }
               setContextMenu(null);
             }}
@@ -375,7 +376,47 @@ export default function MessageList({ messages, userColors, userName, typingUser
                     </div>
                   ) : (
                     <div className="text-white text-sm break-words">
-                      <ReactMarkdown
+                      {/* Image Display */}
+                      {message.fileUrl && message.fileType === 'image' && (
+                        <div className="mb-2">
+                          <img 
+                            src={message.fileUrl} 
+                            alt={message.fileName || 'Shared image'}
+                            className="max-w-full max-h-96 rounded-lg object-contain border border-white/20 cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => window.open(message.fileUrl, '_blank')}
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* File Display */}
+                      {message.fileUrl && message.fileType === 'file' && (
+                        <div className="mb-2 p-3 bg-black/40 border border-white/20 rounded-lg flex items-center gap-3 hover:bg-black/60 transition-colors">
+                          <div className="p-2 bg-white/10 rounded-lg">
+                            <FaFile className="text-2xl text-white/80" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">
+                              {message.fileName || 'Shared file'}
+                            </p>
+                            <p className="text-xs text-white/60">File attachment</p>
+                          </div>
+                          <a
+                            href={message.fileUrl}
+                            download={message.fileName}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                            title="Download file"
+                          >
+                            <FaDownload className="text-white/80" />
+                          </a>
+                        </div>
+                      )}
+                      
+                      {/* Text Content (only show if there's text or if it's not just a file) */}
+                      {(message.text || (!message.fileUrl)) && (
+                        <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         rehypePlugins={[rehypeHighlight]}
                         components={{
@@ -413,6 +454,7 @@ export default function MessageList({ messages, userColors, userName, typingUser
                       >
                         {message.text || ''}
                       </ReactMarkdown>
+                      )}
                     </div>
                   )}
                   

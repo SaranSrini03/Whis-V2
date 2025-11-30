@@ -4,7 +4,7 @@ import { database, ref, push, onValue, set, remove, onDisconnect } from "../lib/
 import "tailwindcss/tailwind.css";
 import MessageInput from "../components/MessageInput";
 import MessageList from "../components/MessageList";
-import { FaSearch, FaTimes } from "react-icons/fa";
+import { FaSearch, FaTimes, FaStop } from "react-icons/fa";
 
 export default function ChatRoom() {
   const router = useRouter();
@@ -21,6 +21,9 @@ export default function ChatRoom() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [showActiveUsersPopup, setShowActiveUsersPopup] = useState(false);
+  const [deletionTimer, setDeletionTimer] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const deletionTimerRef = useRef(null);
 
   // Initialize roomId and userName
   useEffect(() => {
@@ -34,10 +37,11 @@ export default function ChatRoom() {
     setUserColors((prev) => ({ ...prev, [storedUserName]: storedColor }));
   }, []);
 
-  // Manage online users
+  // Manage online users and deletion timer
   useEffect(() => {
     if (!roomId || !userName) return;
     const onlineUsersRef = ref(database, `rooms/${roomId}/onlineUsers/${userName}`);
+    const deletionTimerRef_db = ref(database, `rooms/${roomId}/deletionTimer`);
 
     // Set user online
     set(onlineUsersRef, true);
@@ -45,13 +49,98 @@ export default function ChatRoom() {
     // Remove user from online list when they disconnect
     onDisconnect(onlineUsersRef).remove();
 
+    // Check if room is effectively empty when user joins (handles case when last user left)
+    setTimeout(() => {
+      onValue(ref(database, `rooms/${roomId}/onlineUsers`), (snapshot) => {
+        const users = snapshot.val() ? Object.keys(snapshot.val()) : [];
+        // If only current user (room effectively empty), start timer if not exists
+        if (users.length === 1 && users[0] === userName) {
+          onValue(deletionTimerRef_db, (timerSnapshot) => {
+            if (!timerSnapshot.val()) {
+              const deletionTime = Date.now() + 120000;
+              set(deletionTimerRef_db, deletionTime);
+            }
+          }, { onlyOnce: true });
+        }
+      }, { onlyOnce: true });
+    }, 1500); // Wait for Firebase to sync
+
     // Listen for online users
-    const unsubscribe = onValue(ref(database, `rooms/${roomId}/onlineUsers`), (snapshot) => {
-      setOnlineUsers(snapshot.val() ? Object.keys(snapshot.val()) : []);
+    const unsubscribeUsers = onValue(ref(database, `rooms/${roomId}/onlineUsers`), (snapshot) => {
+      const usersData = snapshot.val();
+      const users = usersData ? Object.keys(usersData) : [];
+      setOnlineUsers(users);
+
+      // If no users left, start deletion timer
+      if (users.length === 0) {
+        // Check if timer already exists, if not create one
+        onValue(deletionTimerRef_db, (timerSnapshot) => {
+          const existingTimer = timerSnapshot.val();
+          if (!existingTimer) {
+            // No timer exists, create one
+            const deletionTime = Date.now() + 120000; // 2 minutes from now
+            set(deletionTimerRef_db, deletionTime);
+          }
+        }, { onlyOnce: true });
+      }
     });
 
-    return () => unsubscribe();
-  }, [roomId, userName]);
+    // Listen for deletion timer
+    const unsubscribeTimer = onValue(deletionTimerRef_db, (snapshot) => {
+      const deletionTime = snapshot.val();
+      console.log('Deletion timer value:', deletionTime);
+      if (deletionTime) {
+        setDeletionTimer(deletionTime);
+        console.log('Timer set, starting countdown');
+        
+        // Clear any existing interval
+        if (deletionTimerRef.current) {
+          clearInterval(deletionTimerRef.current);
+        }
+
+        // Start countdown
+        const updateTimer = () => {
+          const remaining = Math.max(0, Math.ceil((deletionTime - Date.now()) / 1000));
+          setTimeRemaining(remaining);
+          console.log('Time remaining:', remaining);
+
+          if (remaining <= 0) {
+            // Delete the room
+            console.log('Timer expired, deleting room');
+            const roomRef = ref(database, `rooms/${roomId}`);
+            remove(roomRef).then(() => {
+              console.log('Room deleted, redirecting...');
+              router.push('/');
+            }).catch((error) => {
+              console.error("Error deleting room:", error);
+            });
+            clearInterval(deletionTimerRef.current);
+            deletionTimerRef.current = null;
+          }
+        };
+
+        updateTimer(); // Initial update
+        deletionTimerRef.current = setInterval(updateTimer, 1000);
+      } else {
+        // Timer cancelled
+        console.log('Timer cancelled or removed');
+        if (deletionTimerRef.current) {
+          clearInterval(deletionTimerRef.current);
+          deletionTimerRef.current = null;
+        }
+        setDeletionTimer(null);
+        setTimeRemaining(0);
+      }
+    });
+
+    return () => {
+      unsubscribeUsers();
+      unsubscribeTimer();
+      if (deletionTimerRef.current) {
+        clearInterval(deletionTimerRef.current);
+      }
+    };
+  }, [roomId, userName, router]);
 
   // Listen for new messages
   useEffect(() => {
@@ -152,6 +241,30 @@ export default function ChatRoom() {
 
   const handleBackToHome = () => router.push("/");
 
+  const cancelRoomDeletion = async () => {
+    if (!roomId) return;
+    try {
+      const deletionTimerRef_db = ref(database, `rooms/${roomId}/deletionTimer`);
+      await remove(deletionTimerRef_db);
+      console.log("Room deletion cancelled");
+    } catch (error) {
+      console.error("Error cancelling deletion:", error);
+    }
+  };
+
+  // Debug function to manually start timer (for testing)
+  const startDeletionTimer = async () => {
+    if (!roomId) return;
+    try {
+      const deletionTimerRef_db = ref(database, `rooms/${roomId}/deletionTimer`);
+      const deletionTime = Date.now() + 120000; // 2 minutes
+      await set(deletionTimerRef_db, deletionTime);
+      console.log("Timer started manually:", deletionTime);
+    } catch (error) {
+      console.error("Error starting timer:", error);
+    }
+  };
+
 
   const generateRandomColor = () => {
     let color;
@@ -183,7 +296,25 @@ export default function ChatRoom() {
           </p>
         </div>
 
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          {/* Deletion Timer - Show when room is scheduled for deletion */}
+          {deletionTimer && timeRemaining > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-full backdrop-blur-sm animate-pulse">
+              <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-sm font-medium text-red-300">
+                Room deleting in {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+              </span>
+              <button
+                onClick={cancelRoomDeletion}
+                className="ml-2 p-1.5 bg-red-500/30 hover:bg-red-500/50 rounded-lg transition-all border border-red-500/50"
+                title="Cancel deletion"
+                aria-label="Cancel room deletion"
+              >
+                <FaStop className="text-xs text-red-300" />
+              </button>
+            </div>
+          )}
+
           {/* Button showing number of active users */}
           <button
             onClick={() => setShowActiveUsersPopup(true)}
