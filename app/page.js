@@ -221,7 +221,7 @@ export default function Home() {
       )}
 
       <h6 className="mt-6 text-center text-sm font-bold text-white/50 md:text-sm">
-        Made by Nearcult [saran srini] | V-2
+        Made by Saran Srini  | @Nearcult
       </h6>
     </div>
   );

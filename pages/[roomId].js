@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import { database, ref, push, onValue, set, remove, onDisconnect } from "../lib/firebase";
 import "tailwindcss/tailwind.css";
 import MessageInput from "../components/MessageInput";
@@ -26,17 +26,25 @@ export default function ChatRoom() {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const deletionTimerRef = useRef(null);
 
-  // Initialize roomId and userName
+  // Initialize roomId and userName from router/query and local storage
   useEffect(() => {
-    const urlRoomId = new URL(window.location.href).pathname.split("/").pop();
+    const { roomId: queryRoomId } = router.query;
+    if (!queryRoomId) return;
+
+    const normalizedRoomId =
+      typeof queryRoomId === "string" ? queryRoomId : queryRoomId[0];
+
     const storedUserName = localStorage.getItem("userName") || "Guest";
-    setRoomId(urlRoomId);
+
+    setRoomId(normalizedRoomId);
     setUserName(storedUserName);
 
-    const storedColor = localStorage.getItem(`userColor_${storedUserName}`) || generateRandomColor();
+    const storedColor =
+      localStorage.getItem(`userColor_${storedUserName}`) ||
+      generateRandomColor();
     localStorage.setItem(`userColor_${storedUserName}`, storedColor);
     setUserColors((prev) => ({ ...prev, [storedUserName]: storedColor }));
-  }, []);
+  }, [router.query]);
 
   // Manage online users and deletion timer
   useEffect(() => {
