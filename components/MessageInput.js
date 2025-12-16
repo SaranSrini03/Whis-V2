@@ -1,9 +1,10 @@
-'use client';
+"use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { database, ref, push, remove, set } from "../lib/firebase";
 import { FaImage, FaPlus, FaSmile, FaTimes } from "react-icons/fa";
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPicker from "emoji-picker-react";
 
+// Input surface for composing chat messages, including emoji and image uploads.
 export default function MessageInput({ roomId, userName }) {
     const [newMessage, setNewMessage] = useState("");
     const [showOptions, setShowOptions] = useState(false);
@@ -74,6 +75,7 @@ export default function MessageInput({ roomId, userName }) {
         });
     };
 
+    // Upload image either to ImgBB when available or inline as base64.
     const uploadImage = async (file) => {
         if (!file || !roomId) return null;
 
@@ -152,6 +154,7 @@ export default function MessageInput({ roomId, userName }) {
         return await uploadImage(file);
     };
 
+    // Push the composed message (and optional image) into the room timeline.
     const handleSendMessage = useCallback(async () => {
         if ((!newMessage.trim() && !selectedFile) || !userName || !roomId) return;
 

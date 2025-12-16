@@ -1,3 +1,4 @@
+// Root layout wraps every page with base HTML shell.
 export default function Layout({ children }) {
   return (
     <html lang="en">

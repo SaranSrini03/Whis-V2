@@ -6,6 +6,7 @@ import MessageInput from "../components/MessageInput";
 import MessageList from "../components/MessageList";
 import { FaSearch, FaTimes, FaStop } from "react-icons/fa";
 
+// Primary chat room experience: handles presence, messages, search, and teardown timer.
 export default function ChatRoom() {
   const router = useRouter();
   const [roomId, setRoomId] = useState("");
@@ -65,6 +66,7 @@ export default function ChatRoom() {
       }, { onlyOnce: true });
     }, 1500); // Wait for Firebase to sync
 
+    
     // Listen for online users
     const unsubscribeUsers = onValue(ref(database, `rooms/${roomId}/onlineUsers`), (snapshot) => {
       const usersData = snapshot.val();
@@ -439,7 +441,7 @@ export default function ChatRoom() {
 
         <button
           onClick={() => router.push("/")}
-          className="w-full max-w-lg mx-auto px-4 py-2 text-xs sm:text-sm font-medium text-white/70 hover:bg-white/10 rounded-lg border border-white/20 hover:border-white/40 flex justify-center items-center transition-all"
+          className="w-full max-w-lg mx-auto px-4 py-2 text-xs bg-white sm:text-sm font-medium text-black hover:bg-white/10 rounded-lg border border-white/20 hover:text-white flex justify-center items-center transition-all"
         >
           Return to Lobby
         </button>

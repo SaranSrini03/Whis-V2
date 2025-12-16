@@ -1,173 +1,176 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"; // Import from next/navigation
-import { useState } from 'react';
-import "tailwindcss/tailwind.css"
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+import "tailwindcss/tailwind.css";
 
+// Landing screen for collecting a display name and routing into rooms.
 export default function Home() {
-  const router = useRouter(); // Initialize the router
-  const [name, setName] = useState(""); // To store the entered name
-  const [showOptions, setShowOptions] = useState(false); // To toggle the options display
-  const [errorMessage, setErrorMessage] = useState(""); // To store error message
-  const [isNameLocked, setIsNameLocked] = useState(false); // To lock the name after it's entered
-  const [isJoinRoomModalOpen, setIsJoinRoomModalOpen] = useState(false); // To control modal visibility for join room
-  const [isCreateRoomModalOpen, setIsCreateRoomModalOpen] = useState(false); // To control modal visibility for create room
-  const [roomId, setRoomId] = useState(""); // To store room ID
-  const [generatedRoomId, setGeneratedRoomId] = useState(""); // To store generated random room ID
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [showOptions, setShowOptions] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isNameLocked, setIsNameLocked] = useState(false);
+  const [isJoinRoomModalOpen, setIsJoinRoomModalOpen] = useState(false);
+  const [isCreateRoomModalOpen, setIsCreateRoomModalOpen] = useState(false);
+  const [roomId, setRoomId] = useState("");
 
-  const handleClick = () => {
-    if (!name.trim()) {
+  // Ensure the user provides a usable display name before proceeding.
+  const validateName = useCallback(() => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       setErrorMessage("Please enter a name.");
-    } else if (name.trim().length < 3) {
-      setErrorMessage("Name must be at least 3 characters long.");
-    } else {
-      setErrorMessage(""); // Clear error message if valid
-      setShowOptions(true);
-      setIsNameLocked(true); // Lock the name after clicking the button
-
-      // Save userName to localStorage
-      localStorage.setItem("userName", name.trim());
+      return null;
     }
+    if (trimmedName.length < 3) {
+      setErrorMessage("Name must be at least 3 characters long.");
+      return null;
+    }
+    setErrorMessage("");
+    return trimmedName;
+  }, [name]);
+
+  // Gate room access behind a validated name and persist it locally.
+  const handleClick = () => {
+    const trimmedName = validateName();
+    if (!trimmedName) return;
+
+    setShowOptions(true);
+    setIsNameLocked(true);
+    localStorage.setItem("userName", trimmedName);
   };
-  
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      if (!name.trim()) {
-        setErrorMessage("Please enter a name.");
-      } else if (name.trim().length < 3) {
-        setErrorMessage("Name must be at least 3 characters long.");
-      } else {
-        setErrorMessage(""); // Clear error message if valid
-        setShowOptions(true);
-        setIsNameLocked(true); // Lock the name after pressing Enter
-
-        // Save userName to localStorage
-        localStorage.setItem("userName", name.trim());
-      }
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      handleClick();
     }
   };
 
   const handleJoinRoom = () => {
-    setIsJoinRoomModalOpen(true); // Open the join room modal
+    setIsJoinRoomModalOpen(true);
   };
 
   const handleCreateRoom = () => {
-    setIsCreateRoomModalOpen(true); // Open the create room modal
+    setIsCreateRoomModalOpen(true);
   };
 
+  // Move the user into an existing room when they provide an ID.
   const handleRoomIdSubmit = () => {
-    if (roomId.trim()) {
-      // Redirect to the room page using the roomId
-      window.location.href = `/${roomId.trim()}`; // Navigate to the room page
-      setIsJoinRoomModalOpen(false); // Close the modal after submitting room ID
-    } else {
+    if (!roomId.trim()) {
       setErrorMessage("Please enter a room ID.");
+      return;
     }
+    router.push(`/${roomId.trim()}`);
+    setIsJoinRoomModalOpen(false);
   };
 
+  // Create a room using a random short identifier.
   const handleCreateRoomWithRandomId = () => {
-    const randomId = generateRandomRoomId(); // Generate random room ID directly
-    console.log(`Creating room with random ID: ${randomId}`);
-    setIsCreateRoomModalOpen(false); // Close modal after generating random ID
-    window.location.href = `/${randomId}`; // Redirect to the created room
+    const randomId = generateRandomRoomId();
+    setIsCreateRoomModalOpen(false);
+    router.push(`/${randomId}`);
   };
-  
-  const generateRandomRoomId = () => {
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"; // Define characters for room ID
-    let randomId = "";
-    for (let i = 0; i < 5; i++) {
-      randomId += characters.charAt(Math.floor(Math.random() * characters.length)); // Generate a random ID
-    }
-    return randomId; // Return the generated random ID directly
-  };
-  
 
+  const generateRandomRoomId = useCallback(() => {
+    const characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let randomId = "";
+    for (let i = 0; i < 5; i += 1) {
+      randomId += characters.charAt(
+        Math.floor(Math.random() * characters.length)
+      );
+    }
+    return randomId;
+  }, []);
+
+  // Create a room with the exact ID the user types.
   const handleCreateRoomWithEnteredId = () => {
     if (!roomId.trim()) {
       setErrorMessage("Please enter a room ID.");
       return;
     }
-    console.log(`Creating room with entered ID: ${roomId}`);
-    setIsCreateRoomModalOpen(false); // Close modal after creating room with entered ID
-    window.location.href = `/${roomId.trim()}`; // Redirect to the created room
+    setIsCreateRoomModalOpen(false);
+    router.push(`/${roomId.trim()}`);
   };
 
   return (
-    <div 
-      className="flex items-center justify-center h-screen bg-black text-white flex-col font-mono px-4"
+    <div
+      className="flex h-screen flex-col items-center justify-center bg-black px-4 font-mono text-white"
       style={{
-        backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)',
-        backgroundSize: '50px 50px'
+        backgroundImage:
+          "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)",
+        backgroundSize: "50px 50px",
       }}
     >
-      <h1 className="text-3xl md:text-4xl font-bold mb-6 text-center text-white">Welcome to Whis.</h1>
-  
-      <div className="flex flex-col md:flex-row items-center md:space-x-4 space-y-4 md:space-y-0">
+      <h1 className="mb-6 text-center text-3xl font-bold text-white md:text-4xl">
+        Welcome to Whis.
+      </h1>
+
+      <div className="flex flex-col items-center space-y-4 md:flex-row md:space-x-4 md:space-y-0">
         {!isNameLocked ? (
           <input
             type="text"
             placeholder="Enter your name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(event) => setName(event.target.value)}
             onKeyDown={handleKeyDown}
-            className="px-4 py-2 border border-white/30 bg-black/40 text-white  focus:outline-none focus:border-white/50 w-full md:w-auto"
+            className="w-full bg-black/40 px-4 py-2 text-white border border-white/30 focus:border-white/50 focus:outline-none md:w-auto"
           />
-          
-
         ) : (
-          <p className="text-xl text-center">Your name is {name}</p>
+          <p className="text-center text-xl">Your name is {name}</p>
         )}
-  
+
         {!isNameLocked && (
           <button
-            className="px-4 py-3 bg-white md:w-auto w-full text-black rounded-full hover:bg-white/90 font-semibold shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+            className="w-full rounded-full bg-white px-4 py-3 text-black font-semibold shadow-[0_0_10px_rgba(255,255,255,0.3)] hover:bg-white/90 md:w-auto"
             onClick={handleClick}
           >
             ➔
           </button>
         )}
       </div>
-  
-      {errorMessage && <p className="text-white/80 mt-4 text-center">{errorMessage}</p>}
-  
+
+      {errorMessage && (
+        <p className="mt-4 text-center text-white/80">{errorMessage}</p>
+      )}
+
       {showOptions && (
-        <div className="mt-6 flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+        <div className="mt-6 flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0">
           <button
-            className="px-6 py-3 bg-black/40 text-white border border-white/30 rounded-2xl hover:bg-white/10 hover:border-white/50 w-full md:w-auto transition-all"
+            className="w-full rounded-2xl border border-white/30 bg-black/40 px-6 py-3 text-white transition-all hover:border-white/50 hover:bg-white/10 md:w-auto"
             onClick={handleJoinRoom}
           >
             Join Room
           </button>
           <button
-            className="px-6 py-3 bg-white text-black border border-white rounded-2xl hover:bg-white/90 w-full md:w-auto font-semibold shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all"
+            className="w-full rounded-2xl border border-white bg-white px-6 py-3 font-semibold text-black shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all hover:bg-white/90 md:w-auto"
             onClick={handleCreateRoom}
           >
             Create Room
           </button>
         </div>
       )}
-  
+
       {isJoinRoomModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-          <div className="bg-black border border-white/30 text-white p-6 rounded-lg w-full max-w-md shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-            <h2 className="text-2xl font-bold mb-4 text-white">Enter Room ID</h2>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-lg border border-white/30 bg-black p-6 text-white shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+            <h2 className="mb-4 text-2xl font-bold text-white">Enter Room ID</h2>
             <input
               type="text"
               value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
-              className="w-full px-4 py-2 border border-white/30 bg-black/40 text-white rounded-lg mb-4 focus:outline-none focus:border-white/50"
+              onChange={(event) => setRoomId(event.target.value)}
+              className="mb-4 w-full rounded-lg border border-white/30 bg-black/40 px-4 py-2 text-white focus:border-white/50 focus:outline-none"
               placeholder="Room ID"
             />
             <div className="flex space-x-4">
               <button
-                className="px-6 py-2 bg-white text-black rounded-lg hover:bg-white/90 font-semibold shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+                className="rounded-lg bg-white px-6 py-2 font-semibold text-black shadow-[0_0_10px_rgba(255,255,255,0.3)] hover:bg-white/90"
                 onClick={handleRoomIdSubmit}
               >
                 Join
               </button>
               <button
-                className="px-6 py-2 bg-black border border-white/30 text-white rounded-lg hover:bg-white/10"
+                className="rounded-lg border border-white/30 bg-black px-6 py-2 text-white hover:bg-white/10"
                 onClick={() => setIsJoinRoomModalOpen(false)}
               >
                 Cancel
@@ -178,33 +181,35 @@ export default function Home() {
       )}
 
       {isCreateRoomModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-          <div className="bg-black border border-white/30 text-white p-6 rounded-lg w-full max-w-md relative z-10 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm">
+          <div className="relative z-10 w-full max-w-md rounded-lg border border-white/30 bg-black p-6 text-white shadow-[0_0_20px_rgba(255,255,255,0.1)]">
             <button
-              className="text-3xl text-white/70 hover:text-white absolute top-2 right-2"
+              className="absolute right-2 top-2 text-3xl text-white/70 hover:text-white"
               onClick={() => setIsCreateRoomModalOpen(false)}
             >
               ×
             </button>
-            <h2 className="text-2xl font-bold mb-4 text-white">Create Room</h2>
+            <h2 className="mb-4 text-2xl font-bold text-white">Create Room</h2>
             <div className="flex flex-col space-y-4">
               <button
-                className="px-6 py-2 bg-white text-black rounded-lg hover:bg-white/90 font-semibold shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+                className="rounded-lg bg-white px-6 py-2 font-semibold text-black shadow-[0_0_10px_rgba(255,255,255,0.3)] hover:bg-white/90"
                 onClick={handleCreateRoomWithRandomId}
               >
                 Create Random Room ID
               </button>
-              <div className="flex flex-col md:flex-row items-center md:space-x-4 space-y-4 md:space-y-0">
+              <div className="flex flex-col items-center space-y-4 md:flex-row md:space-x-4 md:space-y-0">
                 <input
                   type="text"
                   value={roomId}
-                  onChange={(e) => setRoomId(e.target.value)}
-                  className="w-full md:w-64 px-4 py-2 border border-white/30 bg-black/40 text-white rounded-lg focus:outline-none focus:border-white/50"
+                  onChange={(event) => setRoomId(event.target.value)}
+                  className="w-full rounded-lg border border-white/30 bg-black/40 px-4 py-2 text-white focus:border-white/50 focus:outline-none md:w-64"
                   placeholder="Enter your own room ID"
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateRoomWithEnteredId()}
+                  onKeyDown={(event) =>
+                    event.key === "Enter" && handleCreateRoomWithEnteredId()
+                  }
                 />
                 <button
-                  className="px-4 py-2 bg-white text-black rounded-lg hover:bg-white/90 border border-white w-full md:w-auto font-semibold shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+                  className="w-full rounded-lg border border-white bg-white px-4 py-2 font-semibold text-black shadow-[0_0_10px_rgba(255,255,255,0.3)] hover:bg-white/90 md:w-auto"
                   onClick={handleCreateRoomWithEnteredId}
                 >
                   ➔
@@ -214,9 +219,10 @@ export default function Home() {
           </div>
         </div>
       )}
-        <h6 className="text-sm md:text-sm font-bold mt-6 text-center text-white/50">Made by Nearcult | V-2</h6>
 
+      <h6 className="mt-6 text-center text-sm font-bold text-white/50 md:text-sm">
+        Made by Nearcult [saran srini] | V-2
+      </h6>
     </div>
   );
-  
 }

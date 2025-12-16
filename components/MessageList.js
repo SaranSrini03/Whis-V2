@@ -1,11 +1,19 @@
-// components/MessageList.js
+// Message timeline with reactions, editing, and markdown rendering.
 import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
 import { database, ref, set, remove } from "../lib/firebase";
-import { FaEdit, FaTrash, FaSmile, FaTimes, FaCopy, FaDownload, FaFile, FaImage } from "react-icons/fa";
-// Custom black/white theme for code highlighting
+import {
+  FaEdit,
+  FaTrash,
+  FaSmile,
+  FaTimes,
+  FaCopy,
+  FaDownload,
+  FaFile,
+  FaImage,
+} from "react-icons/fa";
 
 export default function MessageList({ messages, userColors, userName, typingUsers, searchQuery }) {
   const messagesEndRef = useRef(null);

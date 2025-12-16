@@ -1,6 +1,6 @@
-// pages/_app.js
-import Script from 'next/script';
-import { AuthProvider } from '../lib/auth';
+// Global wrapper to wire up ads and auth provider for the pages router.
+import Script from "next/script";
+import { AuthProvider } from "../lib/auth";
 
 function MyApp({ Component, pageProps }) {
   return (
